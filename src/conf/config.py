@@ -2,8 +2,8 @@ from pydantic import ConfigDict, EmailStr
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    DB_URL: str
-    JWT_SECRET: str
+    DB_URL: str = "postgresql+asyncpg://user:password@host:5432/database"
+    JWT_SECRET: str = "jwt_secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600
 
@@ -18,9 +18,9 @@ class Settings(BaseSettings):
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
-    CLOUDINARY_NAME: str = None
-    CLOUDINARY_API_KEY: int = None
-    CLOUDINARY_API_SECRET: str = None
+    CLOUDINARY_NAME: str = "ACCOUNT_NAME"
+    CLOUDINARY_API_KEY: str = "API_KEY"
+    CLOUDINARY_API_SECRET: str = "API_SECRET"
 
     model_config = ConfigDict(
         extra="ignore", env_file=".env", env_file_encoding="utf-8", case_sensitive=True
