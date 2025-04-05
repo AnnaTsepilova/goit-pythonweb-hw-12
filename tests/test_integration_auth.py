@@ -120,7 +120,21 @@ async def test_login(client):
     assert response.status_code == 200, response.text
     data = response.json()
     assert "access_token" in data
+    assert "refresh_token" in data
     assert "token_type" in data
+
+    response_token = client.post(
+        "api/auth/refresh-token",
+        json={
+            "refresh_token": data["refresh_token"],
+        },
+    )
+    assert response_token.status_code == 200, response_token.text
+    data_token = response_token.json()
+
+    assert "access_token" in data_token
+    assert "refresh_token" in data_token
+    assert "token_type" in data_token
 
 def test_wrong_password_login(client):
     response = client.post(
