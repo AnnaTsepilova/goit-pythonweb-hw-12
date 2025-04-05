@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import ValidationError
 
 from src.database.models import Contact, User
 from src.repository.contacts import ContactRepository
@@ -105,6 +106,20 @@ async def test_create_contact(contact_repository, mock_session, user):
     mock_session.commit.assert_awaited_once()
     mock_session.refresh.assert_awaited_once_with(result)
 
+
+@pytest.mark.asyncio
+async def test_incorrect_phone(contact_repository, mock_session, user):
+    # Setup
+    with pytest.raises(ValidationError) as exc_info:
+        ContactModel(
+            firstname="sdfsdfsdfwef",
+            lastname="sdfsdfsdf",
+            email="ffffffff@email.com",
+            phone="sdfsdfsdf",
+            birthday="1980-01-01",
+            description="Lorem ipsum description",
+        )
+    assert exc_info.type == ValidationError
 
 @pytest.mark.asyncio
 async def test_update_contact(contact_repository, mock_session, user):
