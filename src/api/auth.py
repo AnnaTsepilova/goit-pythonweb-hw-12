@@ -11,8 +11,26 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Реєстрація користувача
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
-async def register_user(user_data: UserCreate,     background_tasks: BackgroundTasks,
-    request: Request, db: Session = Depends(get_db)):
+async def register_user(
+    user_data: UserCreate,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Register users
+
+    Args:
+        user_data (UserCreate): User information for creating
+        background_tasks (BackgroundTasks): Background tasks after registering user
+        request (Request): HTTP Request
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: HTTP_409_CONFLICT
+
+    Returns:
+        Object of registered user
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_email(user_data.email)
@@ -40,6 +58,18 @@ async def register_user(user_data: UserCreate,     background_tasks: BackgroundT
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
+    """User login endpoint
+
+    Args:
+        form_data (OAuth2PasswordRequestForm, optional): Form data with user credentials. Defaults to Depends().
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: HTTP_401_UNAUTHORIZED
+
+    Returns:
+        JSON with access token
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
@@ -60,6 +90,18 @@ async def login_user(
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
+    """Endpoint for registration confirmation with token from email
+
+    Args:
+        token (str): Confiramtion token from email
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Raises:
+        HTTPException: HTTP_400_BAD_REQUEST
+
+    Returns:
+        Confirmation result message
+    """
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_email(email)
@@ -79,6 +121,17 @@ async def request_email(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """Endpoint for email confirmation
+
+    Args:
+        body (RequestEmail): Form data with user email
+        background_tasks (BackgroundTasks): BackgroundTasks handler
+        request (Request): _description_
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Returns:
+        JSON result for email confirmaton
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 

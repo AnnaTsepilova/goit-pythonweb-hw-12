@@ -17,6 +17,15 @@ limiter = Limiter(key_func=get_remote_address)
 )
 @limiter.limit("10/minute")
 async def me(request: Request, user: User = Depends(get_current_user)):
+    """Get current logged user
+
+    Args:
+        request (Request): Unused
+        user (User, optional): Current logged user. Defaults to Depends(get_current_user).
+
+    Returns:
+        Object of current logged in user
+    """
     return user
 
 @router.patch("/avatar", response_model=User)
@@ -25,6 +34,16 @@ async def update_avatar_user(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Add user's avatar
+
+    Args:
+        file (UploadFile, optional): Path to uploaded file. Defaults to File().
+        user (User, optional): Current logged user. Defaults to Depends(get_current_user).
+        db (AsyncSession, optional): db connection. Defaults to Depends(get_db).
+
+    Returns:
+        User object
+    """
     avatar_url = UploadFileService(
         settings.CLD_NAME, settings.CLD_API_KEY, settings.CLD_API_SECRET
     ).upload_file(file, user.username)
