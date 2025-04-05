@@ -24,6 +24,31 @@ def test_signup(client, monkeypatch):
     assert "hashed_password" not in data
     assert "avatar" in data
 
+
+def test_signup_exits(client, monkeypatch):
+    mock_send_email = Mock()
+    monkeypatch.setattr("src.api.auth.send_email", mock_send_email)
+    response = client.post("api/auth/register", json=user_data)
+    assert response.status_code == 409, response.text
+    data = response.json()
+    assert data["detail"] == "Користувач з таким email вже існує"
+
+def test_signup_name_exits(client, monkeypatch):
+    mock_send_email = Mock()
+    monkeypatch.setattr("src.api.auth.send_email", mock_send_email)
+    response = client.post(
+        "api/auth/register",
+        json={
+            "username": "agent007",
+            "email": "someuser@gmail.com",
+            "password": "12345678",
+        },
+    )
+    assert response.status_code == 409, response.text
+    data = response.json()
+    assert data["detail"] == "Користувач з таким іменем вже існує"
+
+
 def test_email_confirmation(client, monkeypatch):
     mock_send_email = Mock()
     monkeypatch.setattr("src.api.auth.send_email", mock_send_email)

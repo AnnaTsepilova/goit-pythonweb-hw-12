@@ -129,6 +129,18 @@ def test_update_contact_status(client, get_token):
     assert data["description"] == "Lorem ipsum description"
     assert "id" in data
 
+def test_update_contact_status_notfound(client, get_token):
+    response = client.patch(
+        "/api/contacts/3",
+        json={
+            "done": 1,
+        },
+        headers={"Authorization": f"Bearer {get_token}"},
+    )
+    assert response.status_code == 404, response.text
+    data = response.json()
+    assert data["detail"] == "Contact not found"
+
 def test_get_contacts_birthdays(client, get_token):
     date_test = datetime.datetime.now() + datetime.timedelta(days=5)
     date_time = date_test.strftime("%Y-%m-%d")
