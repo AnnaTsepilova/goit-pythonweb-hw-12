@@ -31,7 +31,8 @@ class ContactRepository:
         self.db.add(contact)
         await self.db.commit()
         await self.db.refresh(contact)
-        return await self.get_contact_by_id(contact.id, user=user)
+        return contact
+        ##return await self.get_contact_by_id(contact.id, user=user)
 
     async def remove_contact(self, contact_id: int, user: User) -> Contact | None:
         contact = await self.get_contact_by_id(contact_id, user)
@@ -45,7 +46,7 @@ class ContactRepository:
     ) -> Contact | None:
         contact = await self.get_contact_by_id(contact_id, user)
         if contact:
-            for key, value in body.dict(exclude={"tags"}, exclude_unset=True).items():
+            for key, value in body.model_dump(exclude={"tags"}, exclude_unset=True).items():
                 setattr(contact, key, value)
 
             await self.db.commit()

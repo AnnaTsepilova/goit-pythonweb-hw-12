@@ -121,8 +121,7 @@ async def request_email(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    '''
-    Endpoint for email confirmation
+    """Endpoint for email confirmation
 
     Args:
         body (RequestEmail): Form data with user email
@@ -132,7 +131,7 @@ async def request_email(
 
     Returns:
         JSON result for email confirmaton
-    '''
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 
