@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import datetime, timedelta, timezone, UTC
+from typing import Optional, Literal
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
@@ -22,18 +22,37 @@ class Hash:
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# define a function to generate a new access token
+def create_token(
+    data: dict, expires_delta: timedelta, token_type: Literal["access", "refresh"]
+):
+    to_encode = data.copy()
+    now = datetime.now(UTC)
+    expire = now + expires_delta
+    to_encode.update({"exp": expire, "iat": now, "token_type": token_type})
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    return encoded_jwt
+
 async def create_access_token(data: dict, expires_delta: Optional[int] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(timezone.utc) + timedelta(seconds=expires_delta)
+        expire = timedelta(seconds=expires_delta)
     else:
-        expire = datetime.now(timezone.utc) + timedelta(seconds=settings.JWT_EXPIRATION_SECONDS)
+        expire = timedelta(seconds=settings.JWT_EXPIRATION_SECONDS)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM
+
+    encoded_jwt = create_token(
+        to_encode, timedelta(seconds=settings.JWT_EXPIRATION_SECONDS), "access"
     )
     return encoded_jwt
+
+async def create_refresh_token(data: dict, expires_delta: Optional[float] = None):
+    if expires_delta:
+        refresh_token = create_token(data, expires_delta, "refresh")
+    else:
+        refresh_token = create_token(
+            data, timedelta(minutes=settings.REFRESH_TOKEN_EXPIRATION_MINUTES), "refresh"
+        )
+    return refresh_token
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
@@ -59,6 +78,21 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+async def verify_refresh_token(refresh_token: str, db: Session):
+    try:
+        payload = jwt.decode(
+            refresh_token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
+        username = payload["sub"]
+        token_type: str = payload["token_type"]
+        if username is None or token_type != "refresh":
+            return None
+        user_service = UserService(db)
+        user = await user_service.get_user_by_refresh_token(username, refresh_token)
+        return user
+    except JWTError:
+        return None
 
 def create_email_token(data: dict):
     to_encode = data.copy()

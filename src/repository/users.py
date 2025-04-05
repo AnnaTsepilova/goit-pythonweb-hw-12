@@ -18,6 +18,11 @@ class UserRepository:
         user = await self.db.execute(stmt)
         return user.scalar_one_or_none()
 
+    async def get_user_by_refresh_token(self, username: str, refresh_token: str) -> User | None:
+        stmt = select(User).filter_by(username=username).filter_by(refresh_token=refresh_token)
+        user = await self.db.execute(stmt)
+        return user.scalar_one_or_none()
+
     async def get_user_by_email(self, email: str) -> User | None:
         stmt = select(User).filter_by(email=email)
         user = await self.db.execute(stmt)

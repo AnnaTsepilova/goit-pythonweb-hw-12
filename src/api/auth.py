@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas import UserCreate, Token, User, RequestEmail
-from src.services.auth import create_access_token, get_email_from_token, Hash
+from src.schemas import UserCreate, Token, TokenRefreshRequest, User, RequestEmail
+from src.services.auth import create_access_token, create_refresh_token, verify_refresh_token, get_email_from_token, Hash
 from src.services.users import UserService
 from src.database.db import get_db
 from src.services.email import send_email
@@ -86,7 +86,26 @@ async def login_user(
         )
 
     access_token = await create_access_token(data={"sub": user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = await create_refresh_token(data={"sub": user.username})
+    user.refresh_token = refresh_token
+    await db.commit()
+
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+@router.post("/refresh-token", response_model=Token)
+async def new_token(request: TokenRefreshRequest, db: Session = Depends(get_db)):
+    user = await verify_refresh_token(request.refresh_token, db)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
+    new_access_token = await create_access_token(data={"sub": user.username})
+    return {
+        "access_token": new_access_token,
+        "refresh_token": request.refresh_token,
+        "token_type": "bearer",
+    }
 
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
