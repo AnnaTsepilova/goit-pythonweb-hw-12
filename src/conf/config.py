@@ -3,6 +3,11 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DB_URL: str = "postgresql+asyncpg://user:password@host:5432/database"
+
+    REDIS_HOST: str = ""
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = None
+
     JWT_SECRET: str = "jwt_secret"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600

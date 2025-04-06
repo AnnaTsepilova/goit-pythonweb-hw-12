@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone, UTC
 from typing import Optional, Literal
 
+import pickle
+
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
@@ -10,6 +12,7 @@ from jose import JWTError, jwt
 from src.database.db import get_db
 from src.conf.config import settings
 from src.services.users import UserService
+from src.redis.redis import get_redis
 
 class Hash:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -55,7 +58,7 @@ async def create_refresh_token(data: dict, expires_delta: Optional[float] = None
     return refresh_token
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db), redis = Depends (get_redis)
 ):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,10 +76,23 @@ async def get_current_user(
             raise credentials_exception
     except JWTError as e:
         raise credentials_exception
-    user_service = UserService(db)
-    user = await user_service.get_user_by_username(username)
+
+    user = redis.get(str(username))
     if user is None:
-        raise credentials_exception
+        user_service = UserService(db)
+        user = await user_service.get_user_by_username(username)
+        if user is None:
+            raise credentials_exception
+
+        redis.set(str(username), pickle.dumps(user))
+        redis.expire(str(username), 3600)
+    else:
+        user = pickle.loads(user)
+
+    # user_service = UserService(db)
+    # user = await user_service.get_user_by_username(username)
+    # if user is None:
+    #     raise credentials_exception
     return user
 
 async def verify_refresh_token(refresh_token: str, db: Session):

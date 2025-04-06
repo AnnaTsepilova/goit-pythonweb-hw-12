@@ -3,6 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
 from src.database.db import get_db
+from src.redis.redis import get_redis
+
+redis = get_redis()
 
 router = APIRouter(tags=["utils"])
 
@@ -29,6 +32,11 @@ async def healthchecker(db: AsyncSession = Depends(get_db)):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database is not configured correctly",
             )
+
+        # Виконуємо тест підключення до Redis
+        redis.set(str("healthcheck"), "SomeData")
+        redis.delete(str("healthcheck"))
+
         return {"message": "Welcome to FastAPI!"}
     except Exception as e:
         print(e)
@@ -36,7 +44,7 @@ async def healthchecker(db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error connecting to the database",
         )
-
+    
 @router.get("/headers")
 async def read_headers(user_agent: str = Header(default=None)):
     """Test HTTP headers
