@@ -1,5 +1,6 @@
 from datetime import datetime, date
 from typing import List, Optional
+from enum import Enum
 from pydantic import BaseModel, Field, field_validator, ConfigDict, EmailStr
 import re
 
@@ -37,18 +38,30 @@ class ContactResponse(ContactBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class UserRole(str, Enum):
+    USER = "user"
+    MODERATOR = "moderator"
+    ADMIN = "admin"
+
 class User(BaseModel):
     id: int
     username: str
     email: str
     avatar: str | None
+    role: UserRole
 
     model_config = ConfigDict(from_attributes=True)
+
+class UserRegister(BaseModel):
+    username: str
+    email: str
+    password: str
 
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+    role: UserRole
 
 class Token(BaseModel):
     access_token: str

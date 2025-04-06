@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database.models import User
 from src.repository.users import UserRepository
 from src.schemas import User as UserModel
-from src.schemas import UserCreate
+from src.schemas import UserRegister
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ async def test_create_user(user_repository, mock_session):
     ]
     mock_session.execute = AsyncMock(return_value=mock_result)
 
-    user_create = UserCreate(
+    user_create = UserRegister(
         username="testuser2", email="test02@test.com", password="secret_password"
     )
     # Call method

@@ -1,8 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas import UserCreate, Token, TokenRefreshRequest, User, RequestEmail
-from src.services.auth import create_access_token, create_refresh_token, verify_refresh_token, get_email_from_token, Hash
+from src.schemas import (
+    UserRegister,
+    UserCreate,
+    UserRole,
+    Token,
+    TokenRefreshRequest,
+    User,
+    RequestEmail,
+)
+from src.services.auth import (
+    create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
+    get_email_from_token,
+    Hash,
+)
 from src.services.users import UserService
 from src.database.db import get_db
 from src.services.email import send_email
@@ -12,7 +26,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 # Реєстрація користувача
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 async def register_user(
-    user_data: UserCreate,
+    user_data: UserRegister,
     background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
@@ -20,7 +34,7 @@ async def register_user(
     """Register users
 
     Args:
-        user_data (UserCreate): User information for creating
+        user_data (UserRegister): User information for creating
         background_tasks (BackgroundTasks): Background tasks after registering user
         request (Request): HTTP Request
         db (Session, optional): db connection. Defaults to Depends(get_db).
@@ -47,7 +61,10 @@ async def register_user(
             detail="Користувач з таким іменем вже існує",
         )
     user_data.password = Hash().get_password_hash(user_data.password)
-    new_user = await user_service.create_user(user_data)
+
+    new_user = await user_service.create_user(
+        UserCreate(username=user_data.username, email=user_data.email, password=user_data.password, role="user")
+    )
     background_tasks.add_task(
         send_email, new_user.email, new_user.username, request.base_url
     )
@@ -90,7 +107,12 @@ async def login_user(
     user.refresh_token = refresh_token
     await db.commit()
 
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+
 
 @router.post("/refresh-token", response_model=Token)
 async def new_token(request: TokenRefreshRequest, db: Session = Depends(get_db)):
