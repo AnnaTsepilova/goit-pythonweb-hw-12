@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from main import app
 from src.database.models import Base, User
 from src.database.db import get_db
-from src.services.auth import create_access_token, Hash
+from src.services.auth import create_access_token, create_email_token, Hash
 import fakeredis
 from src.redis.redis import get_redis
 
@@ -73,6 +73,11 @@ def client():
 @pytest_asyncio.fixture()
 async def get_token():
     token = await create_access_token(data={"sub": test_user["username"]})
+    return token
+
+@pytest_asyncio.fixture()
+async def get_reset_token():
+    token = create_email_token({"sub": test_user["username"], "token_type": "reset"})
     return token
 
 @pytest.fixture(scope="module", autouse=True)
