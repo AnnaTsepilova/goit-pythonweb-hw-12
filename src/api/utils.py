@@ -5,12 +5,10 @@ from sqlalchemy import text
 from src.database.db import get_db
 from src.redis.redis import get_redis
 
-redis = get_redis()
-
 router = APIRouter(tags=["utils"])
 
 @router.get("/healthchecker")
-async def healthchecker(db: AsyncSession = Depends(get_db)):
+async def healthchecker(db: AsyncSession = Depends(get_db), redis = Depends (get_redis)):
     """Endpoint for health checks of application
 
     Args:

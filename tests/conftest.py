@@ -10,6 +10,9 @@ from main import app
 from src.database.models import Base, User
 from src.database.db import get_db
 from src.services.auth import create_access_token, Hash
+import fakeredis
+from src.redis.redis import get_redis
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./var/test.db"
 
@@ -70,3 +73,13 @@ async def get_token():
     token = await create_access_token(data={"sub": test_user["username"]})
     return token
 
+@pytest.fixture(scope="module", autouse=True)
+def override_redis():
+    fake_redis = fakeredis.FakeRedis()
+
+    # Override the dependency
+    def override_get_redis():
+        return fake_redis
+
+    app.dependency_overrides[get_redis] = override_get_redis
+    yield
