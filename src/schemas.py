@@ -39,9 +39,9 @@ class ContactResponse(ContactBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UserRole(str, Enum):
-    USER = "user"
-    MODERATOR = "moderator"
-    ADMIN = "admin"
+    USER = "USER"
+    MODERATOR = "MODERATOR"
+    ADMIN = "ADMIN"
 
 class User(BaseModel):
     id: int

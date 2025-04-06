@@ -19,6 +19,7 @@ from src.services.auth import (
 )
 from src.services.users import UserService
 from src.database.db import get_db
+from src.redis.redis import get_redis
 from src.services.email import send_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -63,7 +64,12 @@ async def register_user(
     user_data.password = Hash().get_password_hash(user_data.password)
 
     new_user = await user_service.create_user(
-        UserCreate(username=user_data.username, email=user_data.email, password=user_data.password, role="user")
+        UserCreate(
+            username=user_data.username,
+            email=user_data.email,
+            password=user_data.password,
+            role=UserRole.USER,
+        )
     )
     background_tasks.add_task(
         send_email, new_user.email, new_user.username, request.base_url
@@ -73,7 +79,7 @@ async def register_user(
 # Логін користувача
 @router.post("/login", response_model=Token)
 async def login_user(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db), redis = Depends(get_redis),
 ):
     """User login endpoint
 
@@ -105,6 +111,7 @@ async def login_user(
     access_token = await create_access_token(data={"sub": user.username})
     refresh_token = await create_refresh_token(data={"sub": user.username})
     user.refresh_token = refresh_token
+    redis.delete(str(user.username))
     await db.commit()
 
     return {

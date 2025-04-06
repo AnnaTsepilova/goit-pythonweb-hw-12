@@ -30,6 +30,7 @@ test_user = {
     "username": "deadpool",
     "email": "deadpool@example.com",
     "password": "12345678",
+    "role" : "ADMIN",
 }
 
 @pytest.fixture(scope="module", autouse=True)
@@ -43,6 +44,7 @@ def init_models_wrap():
             current_user = User(
                 username=test_user["username"],
                 email=test_user["email"],
+                role=test_user["role"],
                 hashed_password=hash_password,
                 confirmed=True,
                 avatar="<https://twitter.com/gravatar>",

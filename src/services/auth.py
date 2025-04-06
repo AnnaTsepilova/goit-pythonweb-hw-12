@@ -13,6 +13,7 @@ from src.database.db import get_db
 from src.conf.config import settings
 from src.services.users import UserService
 from src.redis.redis import get_redis
+from src.schemas import UserRole, User
 
 class Hash:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -94,6 +95,16 @@ async def get_current_user(
     # if user is None:
     #     raise credentials_exception
     return user
+
+def get_current_moderator_user(current_user: User = Depends(get_current_user)):
+    if current_user.role not in [UserRole.MODERATOR, UserRole.ADMIN]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостатньо прав доступу")
+    return current_user
+
+def get_current_admin_user(current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостатньо прав доступу")
+    return current_user
 
 async def verify_refresh_token(refresh_token: str, db: Session):
     try:
