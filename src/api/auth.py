@@ -9,18 +9,21 @@ from src.schemas import (
     TokenRefreshRequest,
     User,
     RequestEmail,
+    ChangePassword,
 )
 from src.services.auth import (
     create_access_token,
     create_refresh_token,
     verify_refresh_token,
     get_email_from_token,
+    create_email_token,
+    change_user_password,
     Hash,
 )
 from src.services.users import UserService
 from src.database.db import get_db
 from src.redis.redis import get_redis
-from src.services.email import send_email
+from src.services.email import send_email, send_reset_password_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -196,3 +199,63 @@ async def request_email(
             send_email, user.email, user.username, request.base_url
         )
     return {"message": "Перевірте свою електронну пошту для підтвердження"}
+
+@router.post("/reset-password")
+async def reset_password_email(
+    body: RequestEmail,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Endpoint for reset password
+
+    Args:
+        body (RequestEmail): Form data with user email
+        background_tasks (BackgroundTasks): BackgroundTasks handler
+        request (Request): _description_
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Returns:
+        JSON result for password email
+    """
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+
+    reset_token = create_email_token({"sub": user.email, "token_type": "reset"})
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Електронна адреса не існує",
+        )
+
+    if user:
+        background_tasks.add_task(
+            send_reset_password_email, user.email, user.username, request.base_url, reset_token
+        )
+        user.password_reset_token = reset_token
+        await db.commit()
+    return {"message": "Перевірте свою електронну пошту для підтвердження"}
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePassword,
+    background_tasks: BackgroundTasks,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Change password with token from email
+
+    Args:
+        body (ChangePassword): Data for password change
+        background_tasks (BackgroundTasks): BackgroundTasks handler
+        request (Request): _description_
+        db (Session, optional): db connection. Defaults to Depends(get_db).
+
+    Returns:
+        JSON result for password email
+    """
+
+    await change_user_password(change_password=body, db=db)
+
+    return {"message": "Пароль змінено"}

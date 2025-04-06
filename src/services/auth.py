@@ -13,7 +13,7 @@ from src.database.db import get_db
 from src.conf.config import settings
 from src.services.users import UserService
 from src.redis.redis import get_redis
-from src.schemas import UserRole, User
+from src.schemas import UserRole, User, ChangePassword
 
 class Hash:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -120,6 +120,50 @@ async def verify_refresh_token(refresh_token: str, db: Session):
         return user
     except JWTError:
         return None
+
+async def change_user_password(change_password: ChangePassword, db: Session):
+    try:
+        payload = jwt.decode(
+            change_password.reset_password_token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
+        )
+        print(f"change_password - {payload}")
+        username = payload["sub"]
+        token_type: str = payload["token_type"]
+        if username is None or token_type != "reset":
+            return None
+
+        user_service = UserService(db)
+        user = await user_service.get_user_by_password_token(change_password.reset_password_token)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Неправильний токен",
+            )
+        
+        if change_password.new_password != change_password.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Паролі не співпадають",
+            )
+
+        if len(change_password.new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Пароль повинен бути не менше 8 символів",
+            )
+
+        user.hashed_password = Hash().get_password_hash(change_password.new_password)
+        user.password_reset_token = None
+        await db.commit()
+
+        return user
+
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Неправильний токен",
+        )
 
 def create_email_token(data: dict):
     to_encode = data.copy()

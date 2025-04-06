@@ -41,3 +41,4 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
     refresh_token = Column(String, nullable=True)
+    password_reset_token = Column(String, nullable=True)

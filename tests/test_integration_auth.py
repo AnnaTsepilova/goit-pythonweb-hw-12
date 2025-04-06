@@ -57,6 +57,13 @@ def test_email_confirmation(client, monkeypatch):
     data = response.json()
     assert data["message"] == "Перевірте свою електронну пошту для підтвердження"
 
+def test_email_password_reset(client, monkeypatch):
+    mock_send_email = Mock()
+    monkeypatch.setattr("src.api.auth.send_reset_password_email", mock_send_email)
+    response = client.post("api/auth/reset-password", json=user_data)
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data["message"] == "Перевірте свою електронну пошту для підтвердження"
 
 def test_email_confirmation_not_exist(client, monkeypatch):
     mock_send_email = Mock()

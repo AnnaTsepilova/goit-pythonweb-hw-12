@@ -39,3 +39,21 @@ async def send_email(email: EmailStr, username: str, host: str):
         await fm.send_message(message, template_name="verify_email.html")
     except ConnectionErrors as err:
         print(err)
+
+async def send_reset_password_email(email: EmailStr, username: str, host: str, reset_token):
+    try:
+        message = MessageSchema(
+            subject="Confirm your email",
+            recipients=[email],
+            template_body={
+                "host": host,
+                "username": username,
+                "token": reset_token,
+            },
+            subtype=MessageType.html,
+        )
+
+        fm = FastMail(conf)
+        await fm.send_message(message, template_name="reset_password_email.html")
+    except ConnectionErrors as err:
+        print(err)
