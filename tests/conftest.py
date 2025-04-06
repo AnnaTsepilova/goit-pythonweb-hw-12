@@ -11,7 +11,7 @@ from src.database.models import Base, User
 from src.database.db import get_db
 from src.services.auth import create_access_token, Hash
 
-SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./var/test.db"
 
 engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,

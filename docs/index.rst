@@ -40,6 +40,13 @@ REST API Auth
   :undoc-members:
   :show-inheritance:
 
+Repository Contacts
+=========================
+.. automodule:: src.repository.contacts
+  :members:
+  :undoc-members:
+  :show-inheritance:
+
 Indices and tables
 ==================
 
